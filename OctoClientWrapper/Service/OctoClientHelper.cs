@@ -1,0 +1,249 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using OctoClientWrapper.Contract;
+using Octopus.Client.Model;
+using Octopus;
+using Octopus.Client;
+using OctoClientWrapper.POCO;
+using System.Linq;
+using OctoClientWrapper.Extensions;
+using System.Text.RegularExpressions;
+using System.IO;
+using System.Xml.Linq;
+using System.Xml;
+
+namespace OctoClientWrapper.Service
+{
+    public class OctoClientHelper : IOctoClientHelper
+    {
+        OctoClientSingle octoClientSingle;
+        
+        public OctoClientHelper()
+        {
+            octoClientSingle = OctoClientSingle.Instance;
+        }
+        public async System.Threading.Tasks.Task<List<LibraryVariableSetResource>> GetProjectVariablesAsync(string projectname, string environment)
+        {
+            using (var client = await OctopusAsyncClient.Create(octoClientSingle.Endpoint))
+            {
+                var projectsTask = client.Repository.Projects.FindByName("Platform-MP-Quotes");
+                var project = projectsTask.Result;                
+                var variablesetTask = client.Repository.VariableSets.Get(project.VariableSetId);
+                var variableSet = variablesetTask.Result;
+
+            }
+            return new List<LibraryVariableSetResource>();
+        }
+
+        public List<VariableViewModel> GetAllProjectAndLibraryVariablesWithScopes(string projectName, string scope)
+        {
+            //string projectName = "[ProjectName]";
+            ProjectResource project = octoClientSingle.Repository.Projects.FindOne(p => p.Name == projectName);
+
+            var variablesList = new List<VariableViewModel>();
+
+            //Dictionary to get Names from Ids
+            Dictionary<string, string> scopeNames = octoClientSingle.Repository.Environments.FindAll().ToDictionary(x => x.Id, x => x.Name);
+            octoClientSingle.Machines.ForEach(x => scopeNames[x.Id] = x.Name);            
+            octoClientSingle.Channels.Where(c=>c.ProjectId == project.Id).ToList().ForEach(x => scopeNames[x.Id] = x.Name);
+            //octoClientSingle.Repository.Projects.GetChannels(project).Items.ToList().ForEach(x => scopeNames[x.Id] = x.Name);
+            octoClientSingle.Repository.DeploymentProcesses.Get(project.DeploymentProcessId).Steps.SelectMany(x => x.Actions).ToList().ForEach(x => scopeNames[x.Id] = x.Name);
+
+
+            //Get All Library Set Variables
+            List<LibraryVariableSetResource> librarySets = octoClientSingle.LibrarySets;
+
+            foreach (var libraryVariableSetResource in librarySets)
+            {
+
+                var variables = octoClientSingle.Repository.VariableSets.Get(libraryVariableSetResource.VariableSetId);
+                var variableSetName = libraryVariableSetResource.Name;
+                foreach (var variable in variables.Variables)
+                {
+                    variablesList.Add(new VariableViewModel(variable, variableSetName, scopeNames));
+                }
+
+            }
+
+            //Get All Project Variables for the Project
+            var projectSets = octoClientSingle.Repository.VariableSets.Get(project.VariableSetId);
+
+            foreach (var variable in projectSets.Variables)
+            {
+                variablesList.Add(new VariableViewModel(variable, projectName, scopeNames));
+            }
+            var scopedVariables =  variablesList.Where(v => v.Scope == scope).ToList();
+
+            return scopedVariables;
+        }
+
+        public void TransformFile(string sourcefiledir, string projectname, string environment, TransformType transformType)
+        {
+            switch (transformType)
+            {
+                case TransformType.appconfig:
+                    TransformAppConfigFile(sourcefiledir, projectname, environment);
+                    break;
+                case TransformType.webconfig:
+                    TransformWebConfigFile(sourcefiledir, projectname, environment);
+                    break;
+                case TransformType.appsettingjson:
+                    TransformJsonFile(sourcefiledir, projectname, environment);
+                    break;
+                default:
+                    TransformWebConfigFile(sourcefiledir, projectname, environment);
+                    break;
+
+            }
+                
+        }
+
+        public void TransformJsonFile(string sourcefiledir, string projectname, string environment)
+        {
+            string sourcefilePath = sourcefiledir + "/appsettings.json";
+            string destfilePath = sourcefiledir + "/appsettings.release.json";
+            string destenvfilePath = sourcefiledir + "/appsettings."+ environment.Trim(",".ToCharArray())+ ".json";
+
+            //1. fetch all variables and values from octopus deploy
+            var variables = GetAllProjectAndLibraryVariablesWithScopes(projectname, environment);
+            //2. replace variables in appsettings.release.json
+            //2.a find all placeholders that start with '#{' and end with '}'
+            string pattern = @"#{.*?\}";
+            string appconfig = destfilePath.readFile();
+            MatchCollection matches = Regex.Matches(appconfig, pattern);
+            foreach (Match match in matches)
+            {
+                foreach (Capture capture in match.Captures)
+                {
+                    try
+                    {
+                        string strvalue = string.Empty;
+                        Console.WriteLine("Transforming = {0}", capture.Value);
+                        string strkey = capture.Value.TrimStart("#{".ToCharArray()).TrimEnd('}').ToLower();
+                        strvalue = variables.Where(variable => variable.Name == strkey).Select(svariable => svariable.Value).FirstOrDefault();
+                        appconfig = appconfig.Replace(capture.Value, strvalue);
+
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("No config found for {0}", capture.Value);
+                        continue;
+                    }
+                }
+
+                //3. overwrite contents in appsettings.json with contents from appsettings.release.json
+                //4. overwrite contents in appsettings.<environment>.json with contents from appsettings.release.json
+            }
+            using (StreamWriter writer = new StreamWriter(sourcefilePath, false, Encoding.UTF8))
+            {
+                writer.WriteLine(appconfig);
+            }
+
+            using (StreamWriter writer = new StreamWriter(destenvfilePath, false, Encoding.UTF8))
+            {
+                writer.WriteLine(appconfig);
+            }
+        }
+
+        public void TransformWebConfigFile(string sourcefiledir, string projectname, string environment)
+        {
+            string sourcefilePath = sourcefiledir + "/web.config";
+            string transformfilePath = sourcefiledir + "/web.release.config";
+
+            //1. fetch all variables and values from octopus deploy
+            var variables = GetAllProjectAndLibraryVariablesWithScopes(projectname, environment);
+
+            //1. Transform web.config with web.release.config
+            Helper.TransformConfig(sourcefilePath, transformfilePath);
+
+            //2. replace variables with values from octopus deploy 
+            try
+            {
+                //find all placeholders that start with '#{' and end with '}'
+                string pattern = @"#{.*?\}";                
+                string appconfig = sourcefilePath.readFile();               
+
+                MatchCollection matches = Regex.Matches(appconfig, pattern);
+                foreach (Match match in matches)
+                {
+                    foreach (Capture capture in match.Captures)
+                    {
+                        try
+                        {
+                            string strkey = capture.Value.TrimStart("#{".ToCharArray()).TrimEnd('}').ToLower();
+                            string strvalue = string.Empty;
+                            strvalue = variables.Where(variable => variable.Name == strkey).Select(svariable => svariable.Value).FirstOrDefault();
+                            appconfig = appconfig.Replace(capture.Value, strvalue);                            
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("No config found for {0}", capture.Value);
+                            Console.WriteLine(ex.Message);
+                            continue;
+                        }
+
+                    }
+                }
+                using (StreamWriter writer = new StreamWriter(sourcefilePath, false, Encoding.UTF8))
+                {
+                    writer.WriteLine(appconfig);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        public void TransformAppConfigFile(string sourcefiledir, string projectname, string environment)
+        {
+            string sourcefilePath = sourcefiledir + "/app.config";
+            string transformfilePath = sourcefiledir + "/app.release.config";
+
+            //1. fetch all variables and values from octopus deploy
+            var variables = GetAllProjectAndLibraryVariablesWithScopes(projectname, environment);
+
+            //1. Transform web.config with app.release.config
+            Helper.TransformConfig(sourcefilePath, transformfilePath);
+
+            //2. replace variables with values from octopus deploy 
+            try
+            {
+                //find all placeholders that start with '#{' and end with '}'
+                string pattern = @"#{.*?\}";
+                string appconfig = sourcefilePath.readFile();
+
+                MatchCollection matches = Regex.Matches(appconfig, pattern);
+                foreach (Match match in matches)
+                {
+                    foreach (Capture capture in match.Captures)
+                    {
+                        try
+                        {
+                            string strkey = capture.Value.TrimStart("#{".ToCharArray()).TrimEnd('}').ToLower();
+                            string strvalue = string.Empty;
+                            strvalue = variables.Where(variable => variable.Name == strkey).Select(svariable => svariable.Value).FirstOrDefault();
+                            appconfig = appconfig.Replace(capture.Value, strvalue);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("No config found for {0}", capture.Value);
+                            Console.WriteLine(ex.Message);
+                            continue;
+                        }
+
+                    }
+                }
+                using (StreamWriter writer = new StreamWriter(sourcefilePath, false, Encoding.UTF8))
+                {
+                    writer.WriteLine(appconfig);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+    }
+}
