@@ -15,7 +15,9 @@ namespace OctopusDeployConfigTransformer
             IOctoClientHelper octoClientHelper = new OctoClientHelper();
             string jsonFilePath = @"C:\Git\ODVariablesubstitution\OctopusDeployConfigTransformer\GithubConfigObjects.json";
 
-            octoClientHelper.DownloadConfigFiles(jsonFilePath, out apiresponse);
+            octoClientHelper.DownloadAndTransformConfigFiles(jsonFilePath, "Prod,", out apiresponse);
+
+            //octoClientHelper.DownloadConfigFiles(jsonFilePath, out apiresponse);
 
             //string sourcefiledir = @"C:\Git\xpoconnect-integration-services-backend\src\backend\Api\Xpo.Connect.IntegrationService.Backend.Api.Site";
             //string projectname = "XpoConnect-IntegrationServices-Api";

@@ -30,12 +30,13 @@ namespace OctoClientWrapper.Service
             apiresponse = string.Empty;
             try
             {
-                //string strfile = "repos.json";
                 ConfigObjects configObjects = JsonConvert.DeserializeObject<ConfigObjects>(File.ReadAllText(strfile));
+
+                //1. Download Config Files
                 foreach (var configObject in configObjects.GitConfigObjects)
                 {
                     Helper.DownLoadConfigFile(configObject, out apiresponse);
-                }
+                }                
 
             }
             catch (Exception e)
@@ -43,6 +44,32 @@ namespace OctoClientWrapper.Service
                 apiresponse = e.Message;
             }
         }
+
+        public void DownloadAndTransformConfigFiles(string strfile, string environment, out string apiresponse)
+        {
+            apiresponse = string.Empty;
+            try
+            {
+                ConfigObjects configObjects = JsonConvert.DeserializeObject<ConfigObjects>(File.ReadAllText(strfile));
+
+                //1. Download Config Files
+                foreach (var configObject in configObjects.GitConfigObjects)
+                {
+                    Helper.DownLoadConfigFile(configObject, out apiresponse);
+                }
+
+                //2. Transform Config Files
+                foreach (var configObject in configObjects.GitConfigObjects)
+                {
+                    TransformFile(configObject.octopusprojectname, configObject.octopusprojectname, environment, (TransformType)Enum.Parse(typeof(TransformType), configObject.configtype));
+                }
+
+            }
+            catch (Exception e)
+            {
+                apiresponse = e.Message;
+            }
+        }        
 
         public async System.Threading.Tasks.Task<List<LibraryVariableSetResource>> GetProjectVariablesAsync(string projectname, string environment)
         {
@@ -268,3 +295,4 @@ namespace OctoClientWrapper.Service
         }
     }
 }
+
