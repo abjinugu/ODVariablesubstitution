@@ -21,8 +21,8 @@
 <ul>
 <li>Open solution <a href="https://github.com/xpologistics/ODVariablesubstitution/blob/master/OctopusDeployConfigTransformer/OctopusDeployConfigTransformer.sln" title="OctopusDeployConfigTransformer.sln">OctopusDeployConfigTransformer.sln</a> in Visual Studio.</li>
 <li>Set OctopusDeployConfigTransformer project as startup project</li>
-<li>Update GithubConfigObjects.json as per your requirement. Make sure the objects types are not changes since they are directly mapped to <a href="https://github.com/xpologistics/ODVariablesubstitution/blob/master/OctoClientWrapper/POCO/GitConfigObject.cs">POCO</a> object inside.</li>
-<li>Hit F5 for debug and Ctrl + F5 to run the application without debugging enabled</li>
+<li>Update GithubConfigObjects.json as per your requirement. Make sure the objects types are not changed since they are directly mapped to <a href="https://github.com/xpologistics/ODVariablesubstitution/blob/master/OctoClientWrapper/POCO/GitConfigObject.cs">POCO</a> class inside.</li>
+<li>Hit F5 for debug or Ctrl + F5 to run the application without debugging</li>
 <li>Output will be stored in the bin directory.</li>
 </ul>
 
