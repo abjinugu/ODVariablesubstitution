@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.IO;
 using System.Xml.Linq;
 using System.Xml;
+using Newtonsoft.Json;
 
 namespace OctoClientWrapper.Service
 {
@@ -23,6 +24,26 @@ namespace OctoClientWrapper.Service
         {
             octoClientSingle = OctoClientSingle.Instance;
         }
+
+        public void DownloadConfigFiles(string strfile, out string apiresponse)
+        {
+            apiresponse = string.Empty;
+            try
+            {
+                //string strfile = "repos.json";
+                ConfigObjects configObjects = JsonConvert.DeserializeObject<ConfigObjects>(File.ReadAllText(strfile));
+                foreach (var configObject in configObjects.GitConfigObjects)
+                {
+                    Helper.DownLoadConfigFile(configObject, out apiresponse);
+                }
+
+            }
+            catch (Exception e)
+            {
+                apiresponse = e.Message;
+            }
+        }
+
         public async System.Threading.Tasks.Task<List<LibraryVariableSetResource>> GetProjectVariablesAsync(string projectname, string environment)
         {
             using (var client = await OctopusAsyncClient.Create(octoClientSingle.Endpoint))

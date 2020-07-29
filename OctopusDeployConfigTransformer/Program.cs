@@ -3,6 +3,7 @@ using OctoClientWrapper;
 using OctoClientWrapper.Contract;
 using OctoClientWrapper.Service;
 using OctoClientWrapper.POCO;
+using Newtonsoft.Json;
 
 namespace OctopusDeployConfigTransformer
 {
@@ -10,22 +11,21 @@ namespace OctopusDeployConfigTransformer
     {
         static void Main(string[] args)
         {
-            string sourcefiledir = @"C:\Git\xpoconnect-integration-services-backend\src\backend\Api\Xpo.Connect.IntegrationService.Backend.Api.Site";
-            string projectname = "XpoConnect-IntegrationServices-Api";
-            string environment = "Prod,";
-
-            Console.WriteLine("Hello World!");
+            string apiresponse = string.Empty;
             IOctoClientHelper octoClientHelper = new OctoClientHelper();
-            //var variablesTask = octoClientHelper.GetProjectVariablesAsync("", "", "");
-            //var variables = variablesTask.Result;
+            string jsonFilePath = @"C:\Git\ODVariablesubstitution\OctopusDeployConfigTransformer\GithubConfigObjects.json";
 
-            //var allvariables = octoClientHelper.GetAllProjectAndLibraryVariablesWithScopes("Platform-MP-Quotes", "Prod,");
+            octoClientHelper.DownloadConfigFiles(jsonFilePath, out apiresponse);
 
-            octoClientHelper.TransformFile(sourcefiledir, projectname, environment, TransformType.webconfig);
+            //string sourcefiledir = @"C:\Git\xpoconnect-integration-services-backend\src\backend\Api\Xpo.Connect.IntegrationService.Backend.Api.Site";
+            //string projectname = "XpoConnect-IntegrationServices-Api";
+            //string environment = "Prod,";
 
-            sourcefiledir = @"C:\Git\xpoconnect-services-api\src\backend\Api\XpoConnect.Services.Api.Site";
-            projectname = "XpoConnectServices-Api";            
-            octoClientHelper.TransformFile(sourcefiledir, projectname, environment, TransformType.appsettingjson);
+            //octoClientHelper.TransformFile(sourcefiledir, projectname, environment, TransformType.webconfig);
+
+            //sourcefiledir = @"C:\Git\xpoconnect-services-api\src\backend\Api\XpoConnect.Services.Api.Site";
+            //projectname = "XpoConnectServices-Api";            
+            //octoClientHelper.TransformFile(sourcefiledir, projectname, environment, TransformType.appsettingjson);
 
         }
     }

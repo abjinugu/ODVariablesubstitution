@@ -1,0 +1,23 @@
+{
+  "GitConfigObjects": [
+    {
+      "octopusprojectname": "XpoConnect-IntegrationServices-Api",
+      "configtype": "webconfig",
+      "repository": "xpoconnect-integration-services-backend",
+      "configlocation": "src/backend/Api/Xpo.Connect.IntegrationService.Backend.Api.Site",
+      "sourceconfig": "Web.config",
+      "transformconfig": "Web.Release.config",
+      "gitbranch": "dev"
+
+    },
+    {
+      "octopusprojectname": "XpoConnectServices-Api",
+      "configtype": "appsettingjson",
+      "repository": "xpoconnect-services-api",
+      "configlocation": "src/backend/Api/XpoConnect.Services.Api.Site",
+      "sourceconfig": "appsettings.json",
+      "transformconfig": "appsettings.Release.json",
+      "gitbranch": "dev"
+    }
+  ]
+}

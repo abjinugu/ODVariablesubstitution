@@ -9,6 +9,8 @@ namespace OctoClientWrapper.Contract
 {
     public interface IOctoClientHelper
     {
+        public void DownloadConfigFiles(string strfile, out string apiresponse);
+
         public System.Threading.Tasks.Task<List<LibraryVariableSetResource>> GetProjectVariablesAsync(string projectname, string environment);
 
         public List<VariableViewModel> GetAllProjectAndLibraryVariablesWithScopes(string projectName, string scope);

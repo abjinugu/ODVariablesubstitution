@@ -5,41 +5,43 @@ using System.Text;
 using System.Xml;
 using Microsoft.Web.XmlTransform;
 using Newtonsoft.Json.Linq;
+using OctoClientWrapper.POCO;
+using RestSharp;
 
 namespace OctoClientWrapper.Extensions
 {
     public static class Helper
     {
-		public static void TransformConfig(string configFileName, string transformFileName)
-		{
-			try
-			{
-				using (var document = new XmlTransformableDocument())
-				{
-					document.PreserveWhitespace = true;
-					document.Load(configFileName);
+        public static void TransformConfig(string configFileName, string transformFileName)
+        {
+            try
+            {
+                using (var document = new XmlTransformableDocument())
+                {
+                    document.PreserveWhitespace = true;
+                    document.Load(configFileName);
 
-					using (var transform = new XmlTransformation(transformFileName))
-					{
-						if (transform.Apply(document))
-						{
-							document.Save(configFileName);
-						}
-						else
-						{
-							throw new Exception("Transformation Failed");
-						}
-					}
-				}
-			
-			}
-			catch (Exception xmlException)
-			{
-				//DO NOTHING
-			}
+                    using (var transform = new XmlTransformation(transformFileName))
+                    {
+                        if (transform.Apply(document))
+                        {
+                            document.Save(configFileName);
+                        }
+                        else
+                        {
+                            throw new Exception("Transformation Failed");
+                        }
+                    }
+                }
+
+            }
+            catch (Exception xmlException)
+            {
+                //DO NOTHING
+            }
 
 
-		}
+        }
 
         public static JObject readJsonFromFile(this string filePath)
         {
@@ -96,5 +98,101 @@ namespace OctoClientWrapper.Extensions
             return ((Newtonsoft.Json.Linq.JProperty)jtoken).Value.ToString();
         }
 
+
+        public static void DownLoadConfigFile(GitConfigObject gitConfigObject, out string apiresponse)
+        {
+            apiresponse = string.Empty;
+
+            try
+            {
+                var token = string.Format("{0}:{1}", Constants.gitusername, Constants.gitusertoken);
+
+                //string jsonInput = string.Format("{{\"title\": \"PR from {0} to {1}\", \"body\": \"{2}\", \"head\": \"{3}\",  \"base\": \"{4}\" }}", fromBranch, toBranch, "Auto PR from TOOL", fromBranch, toBranch);
+
+                string filename = string.Empty;
+                string gitclienturl = string.Empty;
+
+                switch ((TransformType)Enum.Parse(typeof(TransformType), gitConfigObject.configtype))
+                {
+                    case TransformType.appconfig:                        
+                        gitclienturl = string.Format("{0}/{1}/contents/{2}/{3}?ref={4}", Constants.giturl, gitConfigObject.repository, gitConfigObject.configlocation, gitConfigObject.sourceconfig, gitConfigObject.gitbranch);
+                        DownLoadFile(gitclienturl, token, gitConfigObject.octopusprojectname, gitConfigObject.sourceconfig, out apiresponse);
+                        
+                        gitclienturl = string.Format("{0}/{1}/contents/{2}/{3}?ref={4}", Constants.giturl, gitConfigObject.repository, gitConfigObject.configlocation, gitConfigObject.transformconfig, gitConfigObject.gitbranch);
+                        DownLoadFile(gitclienturl, token, gitConfigObject.octopusprojectname, filename, out apiresponse);
+                        break;
+                    case TransformType.webconfig:                        
+                        gitclienturl = string.Format("{0}/{1}/contents/{2}/{3}?ref={4}", Constants.giturl, gitConfigObject.repository, gitConfigObject.configlocation, gitConfigObject.sourceconfig, gitConfigObject.gitbranch);
+                        DownLoadFile(gitclienturl, token, gitConfigObject.octopusprojectname, gitConfigObject.sourceconfig, out apiresponse);
+                        
+                        gitclienturl = string.Format("{0}/{1}/contents/{2}/{3}?ref={4}", Constants.giturl, gitConfigObject.repository, gitConfigObject.configlocation, gitConfigObject.transformconfig, gitConfigObject.gitbranch);
+                        DownLoadFile(gitclienturl, token, gitConfigObject.octopusprojectname, gitConfigObject.transformconfig, out apiresponse);
+                        break;                        
+                    case TransformType.appsettingjson:                                                
+                        gitclienturl = string.Format("{0}/{1}/contents/{2}/{3}?ref={4}", Constants.giturl, gitConfigObject.repository, gitConfigObject.configlocation, gitConfigObject.sourceconfig, gitConfigObject.gitbranch);
+                        DownLoadFile(gitclienturl, token, gitConfigObject.octopusprojectname, gitConfigObject.sourceconfig, out apiresponse);
+                        
+                        gitclienturl = string.Format("{0}/{1}/contents/{2}/{3}?ref={4}", Constants.giturl, gitConfigObject.repository, gitConfigObject.configlocation, gitConfigObject.transformconfig, gitConfigObject.gitbranch);
+                        DownLoadFile(gitclienturl, token, gitConfigObject.octopusprojectname, gitConfigObject.transformconfig, out apiresponse);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                apiresponse = e.Message;
+            }
+        }
+
+        public static void DownLoadFile(string gitclienturl, string token, string downloadPath, string fileName, out string apiresponse)
+        {
+            apiresponse = string.Empty;
+
+            try
+            {
+                //check if download path exists
+                if (!Directory.Exists(downloadPath))
+                {
+                    Directory.CreateDirectory(downloadPath);
+                }
+
+
+                var client = new RestClient(gitclienturl);
+
+                var request = new RestRequest();
+                // easily add HTTP Headers
+                request.AddHeader("Authorization", string.Format("Basic {0}", token.Base64Encode()));
+
+                request.AddHeader("Accept", AcceptHeaders.jsonaccept);
+
+                // execute the request
+                IRestResponse response = client.Execute(request);
+                if (response.IsSuccessful)
+                {
+                    var content = response.Content; // raw content as string
+
+                    var o1 = JObject.Parse(content);
+                    var pr = o1["download_url"].Value<string>();
+                    var sha = o1["sha"].Value<string>();
+
+                    var oclient = new RestClient(pr);
+                    var orequest = new RestRequest();
+                    // easily add HTTP Headers
+                    orequest.AddHeader("Authorization", string.Format("Basic {0}", token.Base64Encode()));
+
+                    orequest.AddHeader("Accept", AcceptHeaders.jsonaccept);
+                    oclient.DownloadData(request);
+                    File.WriteAllBytes(downloadPath+"/"+fileName, oclient.DownloadData(request));
+
+
+                }
+            }
+            catch (Exception e)
+            {
+                apiresponse = e.Message;
+            }
+
+        }
     }
 }
