@@ -13,6 +13,7 @@ using System.IO;
 using System.Xml.Linq;
 using System.Xml;
 using Newtonsoft.Json;
+using AnyDiff;
 
 namespace OctoClientWrapper.Service
 {
@@ -62,6 +63,12 @@ namespace OctoClientWrapper.Service
                 foreach (var configObject in configObjects.GitConfigObjects)
                 {
                     TransformFile(configObject.octopusprojectname, configObject.octopusprojectname, environment, (TransformType)Enum.Parse(typeof(TransformType), configObject.configtype));
+                }
+
+                //3. Compare files
+                foreach (var configObject in configObjects.GitConfigObjects)
+                {
+                    configObject.compareconfig.CompareFiles(configObject.octopusprojectname + "/" + configObject.sourceconfig, "diff-"+ configObject.compareconfig);
                 }
 
             }

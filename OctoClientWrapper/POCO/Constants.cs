@@ -7,8 +7,8 @@ namespace OctoClientWrapper.POCO
     public static class Constants
     {
         public static readonly string giturl = "https://api.github.com/repos/xpologistics";
-        public static string gitusername = string.Empty;
-        public static string gitusertoken = string.Empty;
+        public static string gitusername = "";
+        public static string gitusertoken = "";
     }
 
     public static class AcceptHeaders

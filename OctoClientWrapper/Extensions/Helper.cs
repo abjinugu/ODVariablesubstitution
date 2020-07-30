@@ -7,6 +7,9 @@ using Microsoft.Web.XmlTransform;
 using Newtonsoft.Json.Linq;
 using OctoClientWrapper.POCO;
 using RestSharp;
+using AnyDiff;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace OctoClientWrapper.Extensions
 {
@@ -97,7 +100,6 @@ namespace OctoClientWrapper.Extensions
         {
             return ((Newtonsoft.Json.Linq.JProperty)jtoken).Value.ToString();
         }
-
 
         public static void DownLoadConfigFile(GitConfigObject gitConfigObject, out string apiresponse)
         {
@@ -193,6 +195,34 @@ namespace OctoClientWrapper.Extensions
                 apiresponse = e.Message;
             }
 
+        }
+
+        public static void CompareFiles(this string sourcefile, string targetfile, string difffilepath)
+        {
+            string[] File1Lines = File.ReadAllLines(sourcefile);
+            string[] File2Lines = File.ReadAllLines(targetfile);
+            List<string> NewLines = new List<string>();
+            for (int lineNo = 0; lineNo < File1Lines.Length; lineNo++)
+            {
+                if (!String.IsNullOrEmpty(File1Lines[lineNo]) && !String.IsNullOrEmpty(File2Lines[lineNo]))
+                {
+                    if (String.Compare(Regex.Replace(File1Lines[lineNo], @"\s+", String.Empty), Regex.Replace(File2Lines[lineNo], @"\s+", String.Empty), StringComparison.OrdinalIgnoreCase) != 0)
+                        NewLines.Add(File2Lines[lineNo]);
+                }
+                else if (!String.IsNullOrEmpty(File1Lines[lineNo]))
+                {
+                }
+                else
+                {
+                    NewLines.Add(File2Lines[lineNo]);
+                }
+            }
+            if (NewLines.Count > 0)
+            {
+                File.WriteAllLines(difffilepath, NewLines);
+            }
+
+            
         }
     }
 }

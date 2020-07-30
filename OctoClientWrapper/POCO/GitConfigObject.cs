@@ -12,6 +12,7 @@ namespace OctoClientWrapper.POCO
         public string configlocation { get; set; }
         public string sourceconfig { get; set; }
         public string transformconfig { get; set; }
+        public string compareconfig { get; set; }
         public string gitbranch { get; set; }
 
     }
