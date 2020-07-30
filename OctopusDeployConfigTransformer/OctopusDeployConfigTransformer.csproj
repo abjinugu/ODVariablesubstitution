@@ -9,4 +9,10 @@
     <ProjectReference Include="..\OctoClientWrapper\OctoClientWrapper.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="XpoConnectServices-Api.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
