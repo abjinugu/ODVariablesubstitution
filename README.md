@@ -1,15 +1,9 @@
-<!DOCTYPE html>
-<html>
+---
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OctopsDeployUtil</title>
-  <link rel="stylesheet" href="https://stackedit.io/style.css" />
-</head>
 
-<body class="stackedit">
-  <div class="stackedit__html"><h2 id="octopus-deploy-variable-substitution-utility">Octopus Deploy Variable Substitution Utility</h2>
+---
+
+<h2 id="octopus-deploy-variable-substitution-utility">Octopus Deploy Variable Substitution Utility</h2>
 <p>This simple utility does the following things</p>
 <ul>
 <li>Reads the contents from <a href="https://github.com/xpologistics/ODVariablesubstitution/blob/master/OctopusDeployConfigTransformer/GithubConfigObjects.json" title="GithubConfigObjects.json">GithubConfigObjects.json</a> file.</li>
@@ -61,9 +55,6 @@
 <p>This will publish OctopusDeployConfigTransformer.exe file in ‘output’ directory. Copy GithubConfigObjects.json file and the files that need to be compared to the same directory.</p>
 <p>Run the below command with appropriate values. This will download the transformed config files in to the directories named after their Octopus Deploy Project and diff files in the main directory with the prefix “diff-”</p>
 <blockquote>
-<p>.\OctopusDeployConfigTransformer.exe “xlmbuildndeploy” “&lt;your_gitPAT&gt;” “&lt;your_ocotpus_deploy_api_key&gt;” “GithubConfigObjects.json” “Prod,”</p>
+<p>.\OctopusDeployConfigTransformer.exe “{your_git_id}” “{your_git_PAT}” “{your_ocotpus_deploy_api_key}” “GithubConfigObjects.json” “Prod,”</p>
 </blockquote>
-</div>
-</body>
 
-</html>
