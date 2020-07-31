@@ -9,6 +9,8 @@ namespace OctoClientWrapper.POCO
         public static readonly string giturl = "https://api.github.com/repos/xpologistics";
         public static string gitusername = "";
         public static string gitusertoken = "";
+        public static readonly string octopusdeplopyurl = "http://deploy.xpo.pvt/";
+        public static string octopusdeplopyapikey = "";        
     }
 
     public static class AcceptHeaders

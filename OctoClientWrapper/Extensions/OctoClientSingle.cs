@@ -17,8 +17,8 @@ namespace OctoClientWrapper.Extensions
 {   
     public sealed class OctoClientSingle
     {
-        static string server = "http://deploy.xpo.pvt/";
-        static string apiKey = "API-******";
+        static string server = Constants.octopusdeplopyurl;
+        static string apiKey = Constants.octopusdeplopyapikey;
         static OctopusServerEndpoint endpoint = new OctopusServerEndpoint(server, apiKey);
         static OctopusRepository repository = new OctopusRepository(new OctopusServerEndpoint(server, apiKey));
         List<LibraryVariableSetResource> librarySets;

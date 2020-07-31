@@ -7,7 +7,8 @@ using Microsoft.Web.XmlTransform;
 using Newtonsoft.Json.Linq;
 using OctoClientWrapper.POCO;
 using RestSharp;
-using AnyDiff;
+using JsonDiffPatchDotNet;
+using XmlDiffLib;
 using DiffPlex;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -200,53 +201,76 @@ namespace OctoClientWrapper.Extensions
 
         }
 
-        public static void CompareFiles(this string sourcefile, string targetfile, string difffilepath)
+        public static void CompareFiles(this string sourcefile, string targetfile, string difffilepath, TransformType transformType)
         {
-            string[] File1Lines = File.ReadAllLines(sourcefile);
-            string[] File2Lines = File.ReadAllLines(targetfile);
-            //List<string> NewLines = new List<string>();
-            //for (int lineNo = 0; lineNo < File1Lines.Length; lineNo++)
-            //{
-            //    if (!String.IsNullOrEmpty(File1Lines[lineNo]) && !String.IsNullOrEmpty(File2Lines[lineNo]))
-            //    {
-            //        if (String.Compare(Regex.Replace(File1Lines[lineNo], @"\s+", String.Empty), Regex.Replace(File2Lines[lineNo], @"\s+", String.Empty), StringComparison.OrdinalIgnoreCase) != 0)
-            //            NewLines.Add(File2Lines[lineNo]);
-            //    }
-            //    else if (!String.IsNullOrEmpty(File1Lines[lineNo]))
-            //    {
-            //    }
-            //    else
-            //    {
-            //        NewLines.Add(File2Lines[lineNo]);
-            //    }
-            //}
-            //if (NewLines.Count > 0)
-            //{
-            //    File.WriteAllLines(difffilepath, NewLines);
-            //}
 
-            var diff = InlineDiffBuilder.Diff(sourcefile.readFile(), targetfile.readFile());
-            List<string> NewLines = new List<string>();
-            foreach (var line in diff.Lines)
+
+            if (transformType == TransformType.appsettingjson)
             {
-                switch (line.Type)
-                {
-                    case ChangeType.Inserted:
-                        NewLines.Add("+:  " + line.Text);
-                        break;
-                    case ChangeType.Deleted:
-                        NewLines.Add("-:  " + line.Text);
-                        break;
-                    //default:
-                    //    NewLines.Add(":  " + line.Text);
-                    //    break;
-                }               
+
+                var jdp = new JsonDiffPatch();
+                var left = JToken.Parse(sourcefile.readFile());
+                var right = JToken.Parse(targetfile.readFile());
+
+                JToken patch = jdp.Diff(left, right);
+                File.WriteAllText(difffilepath, patch.ToString());
 
             }
-
-            if (NewLines.Count > 0)
+            else
             {
-                File.WriteAllLines(difffilepath, NewLines);
+                var exampleA = File.ReadAllText(sourcefile);
+                var exampleB = File.ReadAllText(targetfile);
+
+                var diff = new XmlDiff(exampleA, exampleB);
+
+                diff.CompareDocuments(new XmlDiffOptions());                
+                File.WriteAllText(difffilepath, diff.ToString());
+                //string[] File1Lines = File.ReadAllLines(sourcefile);
+                //string[] File2Lines = File.ReadAllLines(targetfile);
+                ////List<string> NewLines = new List<string>();
+                ////for (int lineNo = 0; lineNo < File1Lines.Length; lineNo++)
+                ////{
+                ////    if (!String.IsNullOrEmpty(File1Lines[lineNo]) && !String.IsNullOrEmpty(File2Lines[lineNo]))
+                ////    {
+                ////        if (String.Compare(Regex.Replace(File1Lines[lineNo], @"\s+", String.Empty), Regex.Replace(File2Lines[lineNo], @"\s+", String.Empty), StringComparison.OrdinalIgnoreCase) != 0)
+                ////            NewLines.Add(File2Lines[lineNo]);
+                ////    }
+                ////    else if (!String.IsNullOrEmpty(File1Lines[lineNo]))
+                ////    {
+                ////    }
+                ////    else
+                ////    {
+                ////        NewLines.Add(File2Lines[lineNo]);
+                ////    }
+                ////}
+                ////if (NewLines.Count > 0)
+                ////{
+                ////    File.WriteAllLines(difffilepath, NewLines);
+                ////}
+
+                //var diff = InlineDiffBuilder.Diff(sourcefile.readFile(), targetfile.readFile(), true, false);
+                //List<string> NewLines = new List<string>();
+                //foreach (var line in diff.Lines)
+                //{
+                //    switch (line.Type)
+                //    {
+                //        case ChangeType.Inserted:
+                //            NewLines.Add("+:  " + line.Text);
+                //            break;
+                //        case ChangeType.Deleted:
+                //            NewLines.Add("-:  " + line.Text);
+                //            break;
+                //            //default:
+                //            //    NewLines.Add(":  " + line.Text);
+                //            //    break;
+                //    }
+
+                //}
+
+                //if (NewLines.Count > 0)
+                //{
+                //    File.WriteAllLines(difffilepath, NewLines);
+                //}
             }
         }
     }

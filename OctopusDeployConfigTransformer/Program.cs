@@ -11,24 +11,26 @@ namespace OctopusDeployConfigTransformer
     {
         static void Main(string[] args)
         {
-            string apiresponse = string.Empty;
-            IOctoClientHelper octoClientHelper = new OctoClientHelper();
-            string jsonFilePath = @"C:\Git\ODVariablesubstitution\OctopusDeployConfigTransformer\GithubConfigObjects.json";
+            string apiresponse = string.Empty;            
+            if (args.Length < 3)
+            {
+                Console.WriteLine("Missing Arguments");
+            }
+            else
+            {
+                var gitusername = args[0] ?? string.Empty;
+                var gitusertoken = args[1] ?? string.Empty;
+                var octopusdeplopyapikey = args[2] ?? string.Empty;
+                var jsonFilePath = args[3] ?? string.Empty;
+                var environment = args[4] ?? string.Empty;
+                
 
-            octoClientHelper.DownloadAndTransformConfigFiles(jsonFilePath, "Prod,", out apiresponse);
-
-            //octoClientHelper.DownloadConfigFiles(jsonFilePath, out apiresponse);
-
-            //string sourcefiledir = @"C:\Git\xpoconnect-integration-services-backend\src\backend\Api\Xpo.Connect.IntegrationService.Backend.Api.Site";
-            //string projectname = "XpoConnect-IntegrationServices-Api";
-            //string environment = "Prod,";
-
-            //octoClientHelper.TransformFile(sourcefiledir, projectname, environment, TransformType.webconfig);
-
-            //sourcefiledir = @"C:\Git\xpoconnect-services-api\src\backend\Api\XpoConnect.Services.Api.Site";
-            //projectname = "XpoConnectServices-Api";            
-            //octoClientHelper.TransformFile(sourcefiledir, projectname, environment, TransformType.appsettingjson);
-
+                Constants.gitusername = gitusername.Length > 0 ? gitusername : Constants.gitusername;
+                Constants.gitusertoken = gitusertoken.Length > 0 ? gitusertoken : Constants.gitusertoken;
+                Constants.octopusdeplopyapikey = octopusdeplopyapikey.Length > 0 ? octopusdeplopyapikey : Constants.octopusdeplopyapikey;                
+                IOctoClientHelper octoClientHelper = new OctoClientHelper();
+                octoClientHelper.DownloadAndTransformConfigFiles(jsonFilePath, environment, out apiresponse);
+            }
         }
     }
 }

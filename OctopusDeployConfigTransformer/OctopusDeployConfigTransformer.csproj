@@ -10,6 +10,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="XpoConnect-IntegrationServices-Api.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="XpoConnectServices-Api.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
