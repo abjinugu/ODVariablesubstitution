@@ -14,6 +14,8 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
+using Newtonsoft.Json;
+using System.Xml.Linq;
 
 namespace OctoClientWrapper.Extensions
 {
@@ -44,7 +46,7 @@ namespace OctoClientWrapper.Extensions
             }
             catch (Exception xmlException)
             {
-                //DO NOTHING
+                Console.WriteLine(xmlException.Message);
             }
 
 
@@ -81,6 +83,30 @@ namespace OctoClientWrapper.Extensions
                 //DO NOTHING
             }
             return subjectString;
+        }
+
+        public static string readXMLFileToJSON(this string filePath)
+        {
+            String subjectString = string.Empty;
+            var json = string.Empty;
+            try
+            {
+                using (StreamReader sr = new StreamReader(filePath))
+                {
+                    // Read the stream to a string, and write the string to the console.
+                    subjectString = sr.ReadToEnd();
+                }
+
+                XmlDocument doc = new XmlDocument();
+                doc.LoadXml(subjectString);
+
+                json = JsonConvert.SerializeXmlNode(doc);
+            }
+            catch (Exception e)
+            {
+                //DO NOTHING
+            }
+            return json;
         }
 
         public static string Base64Encode(this string plainText)
@@ -204,74 +230,37 @@ namespace OctoClientWrapper.Extensions
         public static void CompareFiles(this string sourcefile, string targetfile, string difffilepath, TransformType transformType)
         {
 
+            var jdp = new JsonDiffPatch();
+            try { 
 
-            if (transformType == TransformType.appsettingjson)
-            {
+                if (transformType == TransformType.appsettingjson)
+                {
+                
+                    var left = JToken.Parse(sourcefile.readFile());
+                    var right = JToken.Parse(targetfile.readFile());
 
-                var jdp = new JsonDiffPatch();
-                var left = JToken.Parse(sourcefile.readFile());
-                var right = JToken.Parse(targetfile.readFile());
+                    JToken patch = jdp.Diff(left, right);
+                    if(patch != null)
+                        File.WriteAllText(difffilepath, patch.ToString());
+                    else
+                        File.WriteAllText(difffilepath, "Files are identical");
+                }
+                else
+                {                
+                    var left = JToken.Parse(sourcefile.readXMLFileToJSON());
+                    var right = JToken.Parse(targetfile.readXMLFileToJSON());
 
-                JToken patch = jdp.Diff(left, right);
-                File.WriteAllText(difffilepath, patch.ToString());
-
+                    JToken patch = jdp.Diff(left, right);
+                    if (patch != null)
+                        File.WriteAllText(difffilepath, patch.ToString());
+                    else
+                        File.WriteAllText(difffilepath, "Files are identical");
+                }
             }
-            else
+            catch (Exception e)
             {
-                var exampleA = File.ReadAllText(sourcefile);
-                var exampleB = File.ReadAllText(targetfile);
-
-                var diff = new XmlDiff(exampleA, exampleB);
-
-                diff.CompareDocuments(new XmlDiffOptions());                
-                File.WriteAllText(difffilepath, diff.ToString());
-                //string[] File1Lines = File.ReadAllLines(sourcefile);
-                //string[] File2Lines = File.ReadAllLines(targetfile);
-                ////List<string> NewLines = new List<string>();
-                ////for (int lineNo = 0; lineNo < File1Lines.Length; lineNo++)
-                ////{
-                ////    if (!String.IsNullOrEmpty(File1Lines[lineNo]) && !String.IsNullOrEmpty(File2Lines[lineNo]))
-                ////    {
-                ////        if (String.Compare(Regex.Replace(File1Lines[lineNo], @"\s+", String.Empty), Regex.Replace(File2Lines[lineNo], @"\s+", String.Empty), StringComparison.OrdinalIgnoreCase) != 0)
-                ////            NewLines.Add(File2Lines[lineNo]);
-                ////    }
-                ////    else if (!String.IsNullOrEmpty(File1Lines[lineNo]))
-                ////    {
-                ////    }
-                ////    else
-                ////    {
-                ////        NewLines.Add(File2Lines[lineNo]);
-                ////    }
-                ////}
-                ////if (NewLines.Count > 0)
-                ////{
-                ////    File.WriteAllLines(difffilepath, NewLines);
-                ////}
-
-                //var diff = InlineDiffBuilder.Diff(sourcefile.readFile(), targetfile.readFile(), true, false);
-                //List<string> NewLines = new List<string>();
-                //foreach (var line in diff.Lines)
-                //{
-                //    switch (line.Type)
-                //    {
-                //        case ChangeType.Inserted:
-                //            NewLines.Add("+:  " + line.Text);
-                //            break;
-                //        case ChangeType.Deleted:
-                //            NewLines.Add("-:  " + line.Text);
-                //            break;
-                //            //default:
-                //            //    NewLines.Add(":  " + line.Text);
-                //            //    break;
-                //    }
-
-                //}
-
-                //if (NewLines.Count > 0)
-                //{
-                //    File.WriteAllLines(difffilepath, NewLines);
-                //}
+                Console.WriteLine(e.Message);
             }
-        }
+}
     }
 }

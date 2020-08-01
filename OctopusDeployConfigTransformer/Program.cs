@@ -12,7 +12,7 @@ namespace OctopusDeployConfigTransformer
         static void Main(string[] args)
         {
             string apiresponse = string.Empty;            
-            if (args.Length < 3)
+            if (args.Length < 4)
             {
                 Console.WriteLine("Missing Arguments");
             }
@@ -23,13 +23,23 @@ namespace OctopusDeployConfigTransformer
                 var octopusdeplopyapikey = args[2] ?? string.Empty;
                 var jsonFilePath = args[3] ?? string.Empty;
                 var environment = args[4] ?? string.Empty;
-                
 
                 Constants.gitusername = gitusername.Length > 0 ? gitusername : Constants.gitusername;
                 Constants.gitusertoken = gitusertoken.Length > 0 ? gitusertoken : Constants.gitusertoken;
                 Constants.octopusdeplopyapikey = octopusdeplopyapikey.Length > 0 ? octopusdeplopyapikey : Constants.octopusdeplopyapikey;                
                 IOctoClientHelper octoClientHelper = new OctoClientHelper();
-                octoClientHelper.DownloadAndTransformConfigFiles(jsonFilePath, environment, out apiresponse);
+                try
+                {
+
+                    octoClientHelper.DownloadAndTransformConfigFiles(jsonFilePath, environment, out apiresponse);
+                    Console.WriteLine(apiresponse);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+
+
             }
         }
     }

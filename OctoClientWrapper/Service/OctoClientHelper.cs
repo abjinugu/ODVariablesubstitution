@@ -52,22 +52,21 @@ namespace OctoClientWrapper.Service
             {
                 ConfigObjects configObjects = JsonConvert.DeserializeObject<ConfigObjects>(File.ReadAllText(strfile));
 
-                //1. Download Config Files
+                
                 foreach (var configObject in configObjects.GitConfigObjects)
                 {
+                    //1. Download Config Files
+                    Console.WriteLine(string.Format("downloading files {0} and {1}", configObject.sourceconfig, configObject.transformconfig));
                     Helper.DownLoadConfigFile(configObject, out apiresponse);
-                }
 
-                //2. Transform Config Files
-                foreach (var configObject in configObjects.GitConfigObjects)
-                {
+                    //2. Transform Config Files
+                    Console.WriteLine(string.Format("transforming {0} for {1}", configObject.sourceconfig, configObject.octopusprojectname));
                     TransformFile(configObject.octopusprojectname, configObject.octopusprojectname, environment, (TransformType)Enum.Parse(typeof(TransformType), configObject.configtype));
-                }
 
-                //3. Compare files
-                foreach (var configObject in configObjects.GitConfigObjects)
-                {
-                    configObject.compareconfig.CompareFiles(configObject.octopusprojectname + "/" + configObject.sourceconfig, "diff-"+ configObject.compareconfig, (TransformType)Enum.Parse(typeof(TransformType), configObject.configtype));
+                    //3. Compare files
+                    Console.WriteLine(string.Format("comparing files {0} and {1}", configObject.sourceconfig, configObject.compareconfig));
+                    configObject.compareconfig.CompareFiles(configObject.octopusprojectname + "/" + configObject.sourceconfig, "diff-" + configObject.compareconfig, (TransformType)Enum.Parse(typeof(TransformType), configObject.configtype));
+
                 }
 
             }
@@ -155,48 +154,56 @@ namespace OctoClientWrapper.Service
 
         public void TransformJsonFile(string sourcefiledir, string projectname, string environment)
         {
-            string sourcefilePath = sourcefiledir + "/appsettings.json";
-            string destfilePath = sourcefiledir + "/appsettings.release.json";
-            string destenvfilePath = sourcefiledir + "/appsettings."+ environment.Trim(",".ToCharArray())+ ".json";
+            try
+            { 
+                string sourcefilePath = sourcefiledir + "/appsettings.json";
+                string destfilePath = sourcefiledir + "/appsettings.release.json";
+                string destenvfilePath = sourcefiledir + "/appsettings."+ environment.Trim(",".ToCharArray())+ ".json";
 
-            //1. fetch all variables and values from octopus deploy
-            var variables = GetAllProjectAndLibraryVariablesWithScopes(projectname, environment);
-            //2. replace variables in appsettings.release.json
-            //2.a find all placeholders that start with '#{' and end with '}'
-            string pattern = @"#{.*?\}";
-            string appconfig = destfilePath.readFile();
-            MatchCollection matches = Regex.Matches(appconfig, pattern);
-            foreach (Match match in matches)
-            {
-                foreach (Capture capture in match.Captures)
+                Console.WriteLine("**********fetch all variables and values from octopus deploy*********");
+                var variables = GetAllProjectAndLibraryVariablesWithScopes(projectname, environment);
+
+                Console.WriteLine("**********replace variables with values from octopus deploy*********");
+                //2.a find all placeholders that start with '#{' and end with '}'
+                string pattern = @"#{.*?\}";
+                string appconfig = destfilePath.readFile();
+                MatchCollection matches = Regex.Matches(appconfig, pattern);
+                foreach (Match match in matches)
                 {
-                    try
+                    foreach (Capture capture in match.Captures)
                     {
-                        string strvalue = string.Empty;
-                        Console.WriteLine("Transforming = {0}", capture.Value);
-                        string strkey = capture.Value.TrimStart("#{".ToCharArray()).TrimEnd('}').ToLower();
-                        strvalue = variables.Where(variable => variable.Name == strkey).Select(svariable => svariable.Value).FirstOrDefault();
-                        appconfig = appconfig.Replace(capture.Value, strvalue);
+                        try
+                        {
+                            string strvalue = string.Empty;
+                            Console.WriteLine("Transforming = {0}", capture.Value);
+                            string strkey = capture.Value.TrimStart("#{".ToCharArray()).TrimEnd('}').ToLower();
+                            strvalue = variables.Where(variable => variable.Name == strkey).Select(svariable => svariable.Value).FirstOrDefault();
+                            appconfig = appconfig.Replace(capture.Value, strvalue);
 
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("No config found for {0}", capture.Value);
+                            continue;
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("No config found for {0}", capture.Value);
-                        continue;
-                    }
+
+                    //3. overwrite contents in appsettings.json with contents from appsettings.release.json
+                    //4. overwrite contents in appsettings.<environment>.json with contents from appsettings.release.json
+                }
+                using (StreamWriter writer = new StreamWriter(sourcefilePath, false, Encoding.UTF8))
+                {
+                    writer.WriteLine(appconfig);
                 }
 
-                //3. overwrite contents in appsettings.json with contents from appsettings.release.json
-                //4. overwrite contents in appsettings.<environment>.json with contents from appsettings.release.json
+                using (StreamWriter writer = new StreamWriter(destenvfilePath, false, Encoding.UTF8))
+                {
+                    writer.WriteLine(appconfig);
+                }
             }
-            using (StreamWriter writer = new StreamWriter(sourcefilePath, false, Encoding.UTF8))
+            catch (Exception e)
             {
-                writer.WriteLine(appconfig);
-            }
-
-            using (StreamWriter writer = new StreamWriter(destenvfilePath, false, Encoding.UTF8))
-            {
-                writer.WriteLine(appconfig);
+                Console.WriteLine(e.Message);
             }
         }
 
@@ -205,13 +212,13 @@ namespace OctoClientWrapper.Service
             string sourcefilePath = sourcefiledir + "/web.config";
             string transformfilePath = sourcefiledir + "/web.release.config";
 
-            //1. fetch all variables and values from octopus deploy
+            Console.WriteLine("**********fetch all variables and values from octopus deploy*********");            
             var variables = GetAllProjectAndLibraryVariablesWithScopes(projectname, environment);
 
-            //1. Transform web.config with web.release.config
+            Console.WriteLine("**********Transform web.config with web.release.config*********");            
             Helper.TransformConfig(sourcefilePath, transformfilePath);
 
-            //2. replace variables with values from octopus deploy 
+            Console.WriteLine("**********replace variables with values from octopus deploy*********");            
             try
             {
                 //find all placeholders that start with '#{' and end with '}'
@@ -228,6 +235,7 @@ namespace OctoClientWrapper.Service
                             string strkey = capture.Value.TrimStart("#{".ToCharArray()).TrimEnd('}').ToLower();
                             string strvalue = string.Empty;
                             strvalue = variables.Where(variable => variable.Name == strkey).Select(svariable => svariable.Value).FirstOrDefault();
+                            Console.WriteLine("Transforming = {0}", capture.Value);
                             appconfig = appconfig.Replace(capture.Value, strvalue);                            
                         }
                         catch (Exception ex)
@@ -255,13 +263,13 @@ namespace OctoClientWrapper.Service
             string sourcefilePath = sourcefiledir + "/app.config";
             string transformfilePath = sourcefiledir + "/app.release.config";
 
-            //1. fetch all variables and values from octopus deploy
+            Console.WriteLine("**********fetch all variables and values from octopus deploy*********");            
             var variables = GetAllProjectAndLibraryVariablesWithScopes(projectname, environment);
 
-            //1. Transform web.config with app.release.config
+            Console.WriteLine("**********Transform web.config with app.release.config*********");            
             Helper.TransformConfig(sourcefilePath, transformfilePath);
 
-            //2. replace variables with values from octopus deploy 
+            Console.WriteLine("**********replace variables with values from octopus deploy*********");             
             try
             {
                 //find all placeholders that start with '#{' and end with '}'
@@ -278,6 +286,7 @@ namespace OctoClientWrapper.Service
                             string strkey = capture.Value.TrimStart("#{".ToCharArray()).TrimEnd('}').ToLower();
                             string strvalue = string.Empty;
                             strvalue = variables.Where(variable => variable.Name == strkey).Select(svariable => svariable.Value).FirstOrDefault();
+                            Console.WriteLine("Transforming = {0}", capture.Value);
                             appconfig = appconfig.Replace(capture.Value, strvalue);
                         }
                         catch (Exception ex)
