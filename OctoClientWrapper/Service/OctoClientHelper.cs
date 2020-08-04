@@ -126,7 +126,7 @@ namespace OctoClientWrapper.Service
             {
                 variablesList.Add(new VariableViewModel(variable, projectName, scopeNames));
             }
-            var scopedVariables =  variablesList.Where(v => v.Scope == scope).ToList();
+            var scopedVariables =  variablesList.Where(v => (v.Scope == scope || v.Scope is null)).ToList();
 
             return scopedVariables;
         }
