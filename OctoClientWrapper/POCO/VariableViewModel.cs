@@ -12,12 +12,14 @@ namespace OctoClientWrapper.POCO
         public string Name { get; set; }
         public string Value { get; set; }
         public string Scope { get; set; }
+        public string Id { get; set; }
 
         public VariableViewModel(VariableResource variable, string variableSetName, Dictionary<String, String> scopeNames)
         {
             Name = variable.Name;
             Value = variable.Value;
             VariableSetName = variableSetName;
+            Id = variable.Id;
 
             var nonLookupRoles =
                 variable.Scope.Where(s => s.Key != ScopeField.Environment & s.Key != ScopeField.Machine & s.Key != ScopeField.Channel & s.Key != ScopeField.Action)

@@ -13,6 +13,7 @@ using System.IO;
 using System.Xml.Linq;
 using System.Xml;
 using Newtonsoft.Json;
+using RestSharp.Extensions;
 
 namespace OctoClientWrapper.Service
 {
@@ -105,7 +106,7 @@ namespace OctoClientWrapper.Service
 
 
             //Get All Library Set Variables
-            List<LibraryVariableSetResource> librarySets = octoClientSingle.LibrarySets;
+            List<LibraryVariableSetResource> librarySets = octoClientSingle.LibrarySets.Join(project.IncludedLibraryVariableSetIds, o => o.Id, i => i, (o, i) => o).ToList();
 
             foreach (var libraryVariableSetResource in librarySets)
             {
@@ -126,7 +127,16 @@ namespace OctoClientWrapper.Service
             {
                 variablesList.Add(new VariableViewModel(variable, projectName, scopeNames));
             }
-            var scopedVariables =  variablesList.Where(v => (v.Scope == scope || v.Scope is null)).ToList();
+            var scopedVariables =  variablesList.Where(v => (v.Scope is null) || (v.Scope.Trim(',').Split(",".ToCharArray()).Contains(scope.Trim(',')))).ToList();
+            //scopedVariables.AddRange(variablesList.Where(v => v.Scope is null));
+
+            //get duplicate entries
+            var duplicateVariables = scopedVariables.GroupBy(v => v.Name).Where(g => g.Count() > 1).Select(gs => gs.Key).ToList();
+
+            //select the one with scope among duplicate entries
+            var duplicateVariableNamesWithScope = scopedVariables.Where(v => v.Scope.HasValue()).Join(duplicateVariables, v => v.Name, d => d, (v, d) => v).Select(v => v.Name);
+
+            var duplicatesFilteredWithOutScope = scopedVariables.RemoveAll(x=> (duplicateVariableNamesWithScope.Contains(x.Name) && x.Scope is null));
 
             return scopedVariables;
         }
@@ -310,4 +320,5 @@ namespace OctoClientWrapper.Service
         }
     }
 }
+
 
