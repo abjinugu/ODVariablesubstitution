@@ -261,6 +261,21 @@ namespace OctoClientWrapper.Extensions
             {
                 Console.WriteLine(e.Message);
             }
-}
+        }
+
+        public static void MergeJsonFiles(string sourcefile, string targetfile, string[] outputfiles)
+        {
+            var jsonmergesettings = new JsonMergeSettings() { MergeArrayHandling = MergeArrayHandling.Union };
+            var sourceJson = sourcefile.readJsonFromFile();
+            var targetJson = targetfile.readJsonFromFile();
+            sourceJson.Merge(targetJson, jsonmergesettings);
+            foreach (var outputfile in outputfiles)
+            {
+                using (StreamWriter writer = new StreamWriter(outputfile, false, Encoding.UTF8))
+                {
+                    writer.WriteLine(sourceJson.ToString());
+                }
+            }
+        }
     }
 }

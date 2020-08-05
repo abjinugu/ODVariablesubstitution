@@ -136,6 +136,7 @@ namespace OctoClientWrapper.Service
             //select the one with scope among duplicate entries
             var duplicateVariableNamesWithScope = scopedVariables.Where(v => v.Scope.HasValue()).Join(duplicateVariables, v => v.Name, d => d, (v, d) => v).Select(v => v.Name);
 
+            //remove the ones without scope from the duplicates
             var duplicatesFilteredWithOutScope = scopedVariables.RemoveAll(x=> (duplicateVariableNamesWithScope.Contains(x.Name) && x.Scope is null));
 
             return scopedVariables;
@@ -201,15 +202,23 @@ namespace OctoClientWrapper.Service
                     //3. overwrite contents in appsettings.json with contents from appsettings.release.json
                     //4. overwrite contents in appsettings.<environment>.json with contents from appsettings.release.json
                 }
-                using (StreamWriter writer = new StreamWriter(sourcefilePath, false, Encoding.UTF8))
+
+                using (StreamWriter writer = new StreamWriter(destfilePath, false, Encoding.UTF8))
                 {
                     writer.WriteLine(appconfig);
                 }
 
-                using (StreamWriter writer = new StreamWriter(destenvfilePath, false, Encoding.UTF8))
-                {
-                    writer.WriteLine(appconfig);
-                }
+                Helper.MergeJsonFiles(sourcefilePath, destfilePath, new string[]{sourcefilePath,destenvfilePath} );                
+
+                //using (StreamWriter writer = new StreamWriter(sourcefilePath, false, Encoding.UTF8))
+                //{
+                //    writer.WriteLine(appconfig);
+                //}
+
+                //using (StreamWriter writer = new StreamWriter(destenvfilePath, false, Encoding.UTF8))
+                //{
+                //    writer.WriteLine(appconfig);
+                //}
             }
             catch (Exception e)
             {
